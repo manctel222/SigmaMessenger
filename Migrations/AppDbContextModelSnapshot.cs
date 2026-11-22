@@ -22,6 +22,53 @@ namespace SigmaMessenger.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("SigmaMessenger.Models.Chat", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("isGroup")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Chats");
+                });
+
+            modelBuilder.Entity("SigmaMessenger.Models.ChatMember", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ChatId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("LastReadMessageId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("UserId", "ChatId");
+
+                    b.HasIndex("ChatId");
+
+                    b.ToTable("ChatMembers");
+                });
+
             modelBuilder.Entity("SigmaMessenger.Models.Message", b =>
                 {
                     b.Property<int>("Id")
@@ -30,9 +77,8 @@ namespace SigmaMessenger.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Sender")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("ChatId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Text")
                         .IsRequired()
@@ -41,9 +87,87 @@ namespace SigmaMessenger.Migrations
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("ChatId");
+
+                    b.HasIndex("UserId");
+
                     b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("SigmaMessenger.Models.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("SigmaMessenger.Models.ChatMember", b =>
+                {
+                    b.HasOne("SigmaMessenger.Models.Chat", "Chat")
+                        .WithMany("Members")
+                        .HasForeignKey("ChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SigmaMessenger.Models.User", "User")
+                        .WithMany("ChatMembers")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chat");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SigmaMessenger.Models.Message", b =>
+                {
+                    b.HasOne("SigmaMessenger.Models.Chat", "Chat")
+                        .WithMany("Messages")
+                        .HasForeignKey("ChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SigmaMessenger.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chat");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SigmaMessenger.Models.Chat", b =>
+                {
+                    b.Navigation("Members");
+
+                    b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("SigmaMessenger.Models.User", b =>
+                {
+                    b.Navigation("ChatMembers");
                 });
 #pragma warning restore 612, 618
         }
