@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SigmaMessenger</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <style>
+        :root {
+            --bg: #101418;
+            --panel: #172027;
+            --panel2: #1e2932;
+            --line: #2b3944;
+            --text: #e8edf2;
+            --muted: #8b9aa7;
+            --accent: #5688f5;
+            --accent2: #7865e8;
+            --danger: #f06a75
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            height: 100vh
+        }
+
+        button, input {
+            font: inherit
+        }
+
+        button {
+            cursor: pointer;
+            border: 0;
+            color: white;
+            background: var(--accent);
+            border-radius: 10px;
+            padding: 11px 15px;
+            font-weight: 600;
+            transition: .15s
+        }
+
+        button:hover {
+            filter: brightness(1.1)
+        }
+
+        button:disabled {
+            opacity: .55;
+            cursor: wait
+        }
+
+        input {
+            background: #11191f;
+            border: 1px solid var(--line);
+            color: var(--text);
+            border-radius: 10px;
+            padding: 12px;
+            outline: none;
+            width: 100%
+        }
+
+        input:focus {
+            border-color: var(--accent)
+        }
+
+        #authScreen {
+            height: 100%;
+            display: grid;
+            place-items: center;
+            padding: 20px
+        }
+
+        .auth-card {
+            width: min(420px, 100%);
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 18px 55px #0004
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: grid;
+            place-items: center;
+            font-size: 22px
+        }
+
+        .brand h1 {
+            font-size: 22px;
+            margin: 0
+        }
+
+        .brand p {
+            margin: 2px 0 0;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .tabs {
+            display: flex;
+            background: #11191f;
+            padding: 4px;
+            border-radius: 12px;
+            margin-bottom: 20px
+        }
+
+        .tabs button {
+            flex: 1;
+            background: transparent;
+            color: var(--muted)
+        }
+
+        .tabs button.active {
+            background: var(--panel2);
+            color: var(--text)
+        }
+
+        .auth-form {
+            display: grid;
+            gap: 12px
+        }
+
+        .auth-form button {
+            margin-top: 4px
+        }
+
+        .hint {
+            font-size: 12px;
+            color: var(--muted);
+            margin: 12px 0 0
+        }
+
+        .error {
+            color: var(--danger);
+            font-size: 13px;
+            min-height: 18px
+        }
+
+        #appScreen {
+            height: 100%;
+            display: none;
+            padding: 14px
+        }
+
+        .layout {
+            height: 100%;
+            display: grid;
+            grid-template-columns:330px minmax(0, 1fr);
+            gap: 14px;
+            max-width: 1500px;
+            margin: auto
+        }
+
+        .sidebar, .chat-panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            min-height: 0;
+            overflow: hidden
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column
+        }
+
+        .sidebar-head {
+            padding: 18px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .sidebar-head h2 {
+            margin: 0;
+            font-size: 18px
+        }
+
+        .user-chip {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 4px
+        }
+
+        .new-chat {
+            padding: 14px;
+            border-bottom: 1px solid var(--line)
+        }
+
+        .new-chat label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin: 0 0 8px
+        }
+
+        .new-chat-row {
+            display: flex;
+            gap: 8px
+        }
+
+        .new-chat-row input {
+            min-width: 0
+        }
+
+        .new-chat-row button {
+            white-space: nowrap;
+            padding: 10px
+        }
+
+        .chat-list {
+            overflow: auto;
+            flex: 1;
+            padding: 8px
+        }
+
+        .chat-item {
+            width: 100%;
+            text-align: left;
+            background: transparent;
+            color: var(--text);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 3px
+        }
+
+        .chat-item:hover {
+            background: var(--panel2)
+        }
+
+        .chat-item.active {
+            background: #263746
+        }
+
+        .avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #3b647d, #5a70c9);
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            flex: none
+        }
+
+        .chat-title {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 600
+        }
+
+        .chat-sub {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 2px
+        }
+
+        .sidebar-footer {
+            padding: 12px;
+            border-top: 1px solid var(--line)
+        }
+
+        .logout {
+            background: #2a333b;
+            color: #c5d0d8;
+            width: 100%
+        }
+
+        .chat-panel {
+            display: flex;
+            flex-direction: column;
+            position: relative
+        }
+
+        .chat-header {
+            height: 72px;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+        .chat-header h3 {
+            margin: 0;
+            font-size: 16px
+        }
+
+        .chat-header small {
+            color: var(--muted)
+        }
+
+        .chat-body {
+            flex: 1;
+            overflow: auto;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: radial-gradient(ellipse at top, #202a33 0, transparent 70%)
+        }
+
+        .empty-state {
+            margin: auto;
+            text-align: center;
+            color: var(--muted);
+            max-width: 320px
+        }
+
+        .empty-state .big {
+            font-size: 46px;
+            margin-bottom: 10px
+        }
+
+        .message {
+            max-width: min(75%, 650px);
+            padding: 10px 13px;
+            border-radius: 15px;
+            overflow-wrap: anywhere;
+            white-space: pre-wrap;
+            box-shadow: 0 2px 6px #0002
+        }
+
+        .message.mine {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #426ed3, #695ed0);
+            border-bottom-right-radius: 5px
+        }
+
+        .message.other {
+            align-self: flex-start;
+            background: #28343d;
+            border-bottom-left-radius: 5px
+        }
+
+        .sender {
+            font-size: 12px;
+            font-weight: 700;
+            color: #a8c5ff;
+            margin-bottom: 3px
+        }
+
+        .message.other .sender {
+            color: #84d1c1
+        }
+
+        .message-meta {
+            display: flex;
+            justify-content: flex-end;
+            font-size: 10px;
+            opacity: .7;
+            margin-top: 5px
+        }
+
+        .composer {
+            display: flex;
+            gap: 10px;
+            padding: 14px;
+            border-top: 1px solid var(--line);
+            background: var(--panel)
+        }
+
+        .composer input {
+            flex: 1;
+            min-width: 0
+        }
+
+        .composer button {
+            min-width: 105px
+        }
+
+        .status {
+            font-size: 12px;
+            color: var(--muted);
+            padding: 0 18px 8px
+        }
+
+        .status.online {
+            color: #60c99b
+        }
+
+        .status.offline {
+            color: #e3a76d
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 22px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #293640;
+            color: var(--text);
+            padding: 11px 16px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px #0006;
+            display: none;
+            z-index: 5
+        }
+
+        @media (max-width: 760px) {
+            #appScreen {
+                padding: 0
+            }
+
+            .layout {
+                grid-template-columns:1fr;
+                gap: 0
+            }
+
+            .sidebar, .chat-panel {
+                border-radius: 0
+            }
+
+            .sidebar {
+                height: 100%;
+            }
+
+            .chat-panel {
+                height: 100%;
+                display: none
+            }
+
+            .layout.chat-open .sidebar {
+                display: none
+            }
+
+            .layout.chat-open .chat-panel {
+                display: flex
+            }
+
+            .chat-header {
+                height: 64px
+            }
+
+            .message {
+                max-width: 88%
+            }
+        }
+    </style>
+</head>
+<body>
+<section id="authScreen">
+    <div class="auth-card">
+        <div class="brand">
+            <div class="brand-icon">✦</div>
+            <div><h1>SigmaMessenger</h1>
+                <p>SigmaMessenger · общение в реальном времени</p></div>
+        </div>
+        <div class="tabs">
+            <button id="loginTab" class="active" type="button">Вход</button>
+            <button id="registerTab" type="button">Регистрация</button>
+        </div>
+        <form class="auth-form" id="authForm">
+            <input id="username" autocomplete="username" placeholder="Имя пользователя" required>
+            <input id="password" type="password" autocomplete="current-password" placeholder="Пароль" required>
+            <button id="authSubmit" type="submit">Войти</button>
+            <div class="error" id="authError"></div>
+        </form>
+        <p class="hint">Токен хранится в sessionStorage — сессии вкладок независимы.</p>
+    </div>
+</section>
+
+<section id="appScreen">
+    <div class="layout" id="layout">
+        <aside class="sidebar">
+            <div class="sidebar-head">
+                <div><h2>Сообщения</h2>
+                    <div class="user-chip" id="userLabel"></div>
+                </div>
+                <div class="brand-icon" style="width:36px;height:36px;font-size:18px">✦</div>
+            </div>
+            <div class="new-chat"><label for="targetUserId">Новый чат по User ID</label>
+                <div class="new-chat-row"><input id="targetUserId" type="number" min="1" placeholder="ID пользователя">
+                    <button id="startChat" type="button">Начать</button>
+                </div>
+            </div>
+            <div class="chat-list" id="chatList"></div>
+            <div class="sidebar-footer">
+                <button class="logout" id="logoutBtn">Выйти</button>
+            </div>
+        </aside>
+        <main class="chat-panel">
+            <header class="chat-header">
+                <div class="avatar" id="chatAvatar">M</div>
+                <div><h3 id="chatHeaderTitle">Выберите чат</h3><small id="chatHeaderSub">Мессенджер</small></div>
+            </header>
+            <div class="status" id="connectionStatus">Подключение не запущено</div>
+            <div class="chat-body" id="messages">
+                <div class="empty-state">
+                    <div class="big">☁</div>
+                    <div>Выберите чат слева, чтобы начать переписку.</div>
+                </div>
+            </div>
+            <form class="composer" id="messageForm"><input id="messageInput" placeholder="Напишите сообщение..."
+                                                           autocomplete="off" disabled>
+                <button id="sendBtn" disabled>Отправить</button>
+            </form>
+        </main>
+    </div>
+</section>
+<div class="toast" id="toast"></div>
+<script>
+    (() => {
+        const API = "";
+        const CLAIM = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier";
+        const $ = id => document.getElementById(id);
+        let token = sessionStorage.getItem("messenger_token") || "";
+        let userId = null, username = sessionStorage.getItem("messenger_username") || "";
+        let isRegister = false, connection = null, activeChat = null, chats = [];
+        let messageIds = new Set();
+
+        function toast(text) {
+            const t = $("toast");
+            t.textContent = text;
+            t.style.display = "block";
+            clearTimeout(toast.timer);
+            toast.timer = setTimeout(() => t.style.display = "none", 3000)
+        }
+
+        function decodeJwtPayload(jwt) {
+            try {
+                const p = jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+                return JSON.parse(decodeURIComponent(escape(atob(p.padEnd(p.length + (4 - p.length % 4) % 4, "=")))));
+            } catch (e) {
+                return null
+            }
+        }
+
+        function extractUserId(jwt) {
+            const p = decodeJwtPayload(jwt);
+            if (!p) return null;
+            return p[CLAIM] ?? p.nameid ?? p.sub ?? null;
+        }
+
+        async function request(path, options = {}) {
+            const headers = {"Content-Type": "application/json", ...(options.headers || {})};
+            if (token) headers.Authorization = "Bearer " + token;
+            const response = await fetch(API + path, {...options, headers});
+            if (!response.ok) {
+                let detail = "";
+                try {
+                    detail = await response.text()
+                } catch {
+                }
+                ;
+                throw new Error(detail || `HTTP ${response.status}`)
+            }
+            if (response.status === 204) return null;
+            const text = await response.text();
+            if (!text) return null;
+            try {
+                return JSON.parse(text)
+            } catch {
+                return text
+            }
+        }
+
+        function setAuthError(msg) {
+            $("authError").textContent = msg || ""
+        }
+
+        function showAuth() {
+            $("authScreen").style.display = "grid";
+            $("appScreen").style.display = "none";
+        }
+
+        function showApp() {
+            $("authScreen").style.display = "none";
+            $("appScreen").style.display = "block";
+        }
+
+        function setAuthMode(register) {
+            isRegister = register;
+            $("loginTab").classList.toggle("active", !register);
+            $("registerTab").classList.toggle("active", register);
+            $("authSubmit").textContent = register ? "Зарегистрироваться" : "Войти";
+            $("password").autocomplete = register ? "new-password" : "current-password";
+            setAuthError("");
+        }
+
+        $("loginTab").onclick = () => setAuthMode(false);
+        $("registerTab").onclick = () => setAuthMode(true);
+        $("authForm").addEventListener("submit", async e => {
+            e.preventDefault();
+            setAuthError("");
+            $("authSubmit").disabled = true;
+            try {
+                const endpoint = isRegister ? "/api/Auth/register" : "/api/Auth/login";
+                const result = await request(endpoint, {
+                    method: "POST",
+                    headers: {},
+                    body: JSON.stringify({username: $("username").value.trim(), password: $("password").value})
+                });
+                if (isRegister) {
+                    toast("Регистрация завершена. Теперь войдите.");
+                    setAuthMode(false);
+                    return;
+                }
+                token = typeof result === "string" ? result : (result?.token || result?.accessToken || result?.jwt);
+                if (!token) throw new Error("Сервер не вернул JWT-токен.");
+                userId = extractUserId(token);
+                username = $("username").value.trim();
+                sessionStorage.setItem("messenger_token", token);
+                sessionStorage.setItem("messenger_username", username);
+                await initializeApp();
+            } catch (err) {
+                setAuthError(err.message || "Не удалось выполнить запрос.");
+            } finally {
+                $("authSubmit").disabled = false;
+            }
+        });
+
+        async function initializeApp() {
+            showApp();
+            $("userLabel").textContent = `${username}${userId !== null ? " · ID " + userId : ""}`;
+            await loadChats();
+            await startSignalR();
+        }
+
+        async function loadChats() {
+            try {
+                chats = await request("/api/Chat") || [];
+                renderChats();
+            } catch (e) {
+                toast("Не удалось загрузить чаты: " + e.message);
+            }
+        }
+
+        function renderChats() {
+            const list = $("chatList");
+            list.innerHTML = "";
+            if (!chats.length) {
+                const p = document.createElement("div");
+                p.className = "empty-state";
+                p.style.padding = "30px 10px";
+                p.textContent = "Пока нет чатов";
+                list.append(p);
+                return;
+            }
+            chats.forEach(chat => {
+                const b = document.createElement("button");
+                b.className = "chat-item" + (activeChat && String(activeChat.chatId) === String(chat.chatId) ? " active" : "");
+                const avatar = document.createElement("div");
+                avatar.className = "avatar";
+                avatar.textContent = (chat.chatTitle || "C").trim().slice(0, 1).toUpperCase();
+                const info = document.createElement("div");
+                info.style.minWidth = "0";
+                const title = document.createElement("div");
+                title.className = "chat-title";
+                title.textContent = chat.chatTitle || ("Чат " + chat.chatId);
+                const sub = document.createElement("div");
+                sub.className = "chat-sub";
+                sub.textContent = "Открыть переписку";
+                info.append(title, sub);
+                b.append(avatar, info);
+                b.onclick = () => openChat(chat);
+                list.append(b);
+            });
+        }
+
+        async function startSignalR() {
+            if (!window.signalR) {
+                setStatus("SignalR не загрузился", false);
+                return;
+            }
+            connection = new signalR.HubConnectionBuilder().withUrl(API + "/hubs/chat", {accessTokenFactory: () => token}).withAutomaticReconnect().build();
+            connection.on("ReceiveMessage", msg => {
+                if (activeChat) appendMessage(msg);
+            });
+            connection.onreconnecting(() => setStatus("Переподключение…", false));
+            connection.onreconnected(() => {
+                setStatus("Подключено", true);
+                if (activeChat) connection.invoke("JoinChat", activeChat.chatId).catch(console.error);
+            });
+            connection.onclose(() => setStatus("Соединение закрыто", false));
+            try {
+                await connection.start();
+                setStatus("Подключено", true);
+            } catch (e) {
+                setStatus("SignalR: " + e.message, false);
+                toast("Не удалось подключиться к SignalR");
+            }
+        }
+
+        function setStatus(text, online) {
+            $("connectionStatus").textContent = text;
+            $("connectionStatus").className = "status " + (online ? "online" : "offline");
+        }
+
+        async function openChat(chat) {
+            if (activeChat && connection && connection.state === signalR.HubConnectionState.Connected) {
+                try {
+                    await connection.invoke("LeaveChat", activeChat.chatId)
+                } catch (e) {
+                    console.warn(e)
+                }
+            }
+            activeChat = chat;
+            messageIds.clear();
+            renderChats();
+            $("chatHeaderTitle").textContent = chat.chatTitle || "Чат";
+            $("chatHeaderSub").textContent = "ID чата: " + chat.chatId;
+            $("chatAvatar").textContent = (chat.chatTitle || "C").trim().slice(0, 1).toUpperCase();
+            $("messageInput").disabled = false;
+            $("sendBtn").disabled = false;
+            $("messageInput").focus();
+            $("layout").classList.add("chat-open");
+            $("messages").innerHTML = "";
+            if (connection && connection.state === signalR.HubConnectionState.Connected) {
+                try {
+                    await connection.invoke("JoinChat", chat.chatId)
+                } catch (e) {
+                    toast("Не удалось войти в чат SignalR: " + e.message)
+                }
+            }
+            try {
+                const history = await request(`/api/Message/${encodeURIComponent(chat.chatId)}`);
+                if (Array.isArray(history)) history.forEach(appendMessage);
+                scrollBottom();
+            } catch (e) {
+                toast("Не удалось загрузить историю: " + e.message)
+            }
+        }
+
+        function appendMessage(msg) {
+            if (msg?.id === undefined || msg?.id === null) return;
+            const key = String(msg.id);
+            if (messageIds.has(key)) return;
+            messageIds.add(key);
+            const mine = String(msg.senderId) === String(userId);
+            const wrap = document.createElement("div");
+            wrap.className = "message " + (mine ? "mine" : "other");
+            if (!mine) {
+                const sender = document.createElement("div");
+                sender.className = "sender";
+                sender.textContent = msg.senderUsername || "Пользователь";
+                wrap.append(sender);
+            }
+            const content = document.createElement("div");
+            content.textContent = msg.text ?? "";
+            wrap.append(content);
+            const meta = document.createElement("div");
+            meta.className = "message-meta";
+            meta.textContent = formatTime(msg.timeStamp);
+            wrap.append(meta);
+            $("messages").append(wrap);
+            scrollBottom();
+        }
+
+        function formatTime(value) {
+            if (!value) return "";
+            const d = new Date(value);
+            return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+        }
+
+        function scrollBottom() {
+            $("messages").scrollTop = $("messages").scrollHeight;
+        }
+
+        $("messageForm").addEventListener("submit", async e => {
+            e.preventDefault();
+            if (!activeChat) return;
+            const text = $("messageInput").value.trim();
+            if (!text) return;
+            $("sendBtn").disabled = true;
+            try {
+                await request("/api/Message", {
+                    method: "POST",
+                    body: JSON.stringify({chatId: activeChat.chatId, text})
+                });
+                $("messageInput").value = "";
+            } catch (err) {
+                toast("Не удалось отправить: " + err.message);
+            } finally {
+                $("sendBtn").disabled = false;
+                $("messageInput").focus();
+            }
+        });
+        $("startChat").onclick = async () => {
+            const target = $("targetUserId").value;
+            if (!target || Number(target) <= 0) {
+                toast("Введите корректный User ID");
+                return;
+            }
+            $("startChat").disabled = true;
+            try {
+                const chat = await request(`/api/Chat/private?targetUserId=${encodeURIComponent(target)}`, {method: "POST"});
+                const found = chats.find(c => String(c.chatId) === String(chat.chatId));
+                if (!found) chats.unshift(chat);
+                renderChats();
+                $("targetUserId").value = "";
+                await openChat(chat);
+            } catch (e) {
+                toast("Не удалось создать чат: " + e.message)
+            } finally {
+                $("startChat").disabled = false;
+            }
+        };
+        $("targetUserId").addEventListener("keydown", e => {
+            if (e.key === "Enter") $("startChat").click()
+        });
+        $("logoutBtn").onclick = async () => {
+            if (connection) {
+                try {
+                    await connection.stop()
+                } catch {
+                }
+            }
+            sessionStorage.removeItem("messenger_token");
+            sessionStorage.removeItem("messenger_username");
+            token = "";
+            userId = null;
+            username = "";
+            activeChat = null;
+            connection = null;
+            messageIds.clear();
+            showAuth();
+        };
+        // Restore a session in this tab only.
+        if (token) {
+            userId = extractUserId(token);
+            if (userId !== null) {
+                initializeApp().catch(e => {
+                    console.error(e);
+                    showAuth();
+                });
+            } else {
+                sessionStorage.removeItem("messenger_token");
+                token = "";
+                showAuth();
+            }
+        } else showAuth();
+    })();
+</script>
+</body>
+</html>

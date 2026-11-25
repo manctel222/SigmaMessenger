@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.TagHelpers.Cache;
+using Microsoft.AspNetCore.SignalR;
+using SigmaMessenger.Hubs;
 using SigmaMessenger.Data;
 using SigmaMessenger.Models;
 using SigmaMessenger.DTOs.Chat.Message;
@@ -10,10 +12,12 @@ namespace SigmaMessenger.Services;
 public class MessageService
 {
     private readonly AppDbContext _db;
+    private readonly IHubContext<ChatHub> _hubContext;
 
-    public MessageService(AppDbContext db)
+    public MessageService(AppDbContext db, IHubContext<ChatHub> hubContext)
     {
         _db = db;
+        _hubContext = hubContext;
     }
 
     public async Task<MessageResponseDTO> SaveMessageAsync(int senderId, MessageDTO dto)
@@ -32,7 +36,7 @@ public class MessageService
         _db.Messages.Add(message);
         await _db.SaveChangesAsync();
         var sender = await _db.Users.FindAsync(senderId);
-        return new MessageResponseDTO
+        var responseDTO = new MessageResponseDTO
         {
             Id = message.Id,
             Text = message.Text,
@@ -40,6 +44,10 @@ public class MessageService
             SenderUsername = sender?.Username ?? "Unknown",
             SenderId = message.UserId
         };
+        await _hubContext.Clients
+            .Group($"chat_{dto.ChatId}")
+            .SendAsync("ReceiveMessage", responseDTO);
+        return responseDTO;
     }
 
     public async Task<List<MessageResponseDTO>> GetChatMessagesAsync(int userId, int chatId)

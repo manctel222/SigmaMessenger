@@ -2,6 +2,7 @@
 using SigmaMessenger.Services;
 using SigmaMessenger.Models;
 using SigmaMessenger.DTOs;
+
 namespace SigmaMessenger.Controllers;
 
 [ApiController]
@@ -22,6 +23,7 @@ public class AuthController : ControllerBase
         {
             return BadRequest("Имя занято");
         }
+
         return Ok();
     }
 
@@ -33,6 +35,7 @@ public class AuthController : ControllerBase
         {
             return Unauthorized("Неверный логин или пароль");
         }
+
         return Ok(new { token });
     }
 }

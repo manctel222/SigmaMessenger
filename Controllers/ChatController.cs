@@ -5,6 +5,7 @@ using SigmaMessenger.DTOs.Chat;
 using SigmaMessenger.Services;
 
 namespace SigmaMessenger.Controllers;
+
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -25,6 +26,7 @@ public class ChatController : ControllerBase
         {
             return Unauthorized("Некорректный токен.");
         }
+
         try
         {
             var chat = await _chatService.CreatePrivateChatAsync(currentUserId, targetUserId);
@@ -48,6 +50,7 @@ public class ChatController : ControllerBase
         {
             return Unauthorized("Некорректный токен");
         }
+
         var myChats = await _chatService.GetUserChatsAsync(currentUserId);
         return Ok(myChats);
     }

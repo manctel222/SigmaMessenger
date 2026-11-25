@@ -8,6 +8,7 @@ namespace SigmaMessenger.Services;
 public class ChatService
 {
     private readonly AppDbContext _db;
+
     public ChatService(AppDbContext db)
     {
         _db = db;
@@ -19,7 +20,7 @@ public class ChatService
         {
             throw new ArgumentException("Нельзя создать чат с самим собой.");
         }
-        
+
         var targetUser = await _db.Users.FindAsync(targetUserId);
         if (targetUser == null)
         {
@@ -29,8 +30,8 @@ public class ChatService
         var existingChat = await _db.Chats
             .Include(c => c.Members)
             .ThenInclude(m => m.User)
-            .FirstOrDefaultAsync(c => 
-                !c.isGroup && 
+            .FirstOrDefaultAsync(c =>
+                !c.isGroup &&
                 c.Members.Any(m => m.UserId == currentUserId) &&
                 c.Members.Any(m => m.UserId == targetUserId));
         if (existingChat != null)
@@ -41,12 +42,13 @@ public class ChatService
                 ChatTitle = targetUser.Username
             };
         }
-        var newChat = new Chat {isGroup = false};
+
+        var newChat = new Chat { isGroup = false };
         _db.Chats.Add(newChat);
         await _db.SaveChangesAsync();
         _db.ChatMembers.AddRange(
-            new ChatMember{ChatId = newChat.Id, UserId = currentUserId, Role = "Member"},
-            new ChatMember{ChatId = newChat.Id, UserId = targetUserId,  Role = "Member"});
+            new ChatMember { ChatId = newChat.Id, UserId = currentUserId, Role = "Member" },
+            new ChatMember { ChatId = newChat.Id, UserId = targetUserId, Role = "Member" });
         await _db.SaveChangesAsync();
         return new ChatResponseDTO
         {
@@ -66,9 +68,9 @@ public class ChatService
         {
             ChatId = c.Id,
             ChatTitle = c.isGroup
-            ? c.Title
-            : c.Members.FirstOrDefault(m => m.UserId != currentUserId)
-                ?.User.Username ?? "Чат"
+                ? c.Title
+                : c.Members.FirstOrDefault(m => m.UserId != currentUserId)
+                    ?.User.Username ?? "Чат"
         }).ToList();
     }
 }

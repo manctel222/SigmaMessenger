@@ -39,7 +39,7 @@ public class MessageController : ControllerBase
         }
     }
 
-    [HttpGet("chatId")]
+    [HttpGet("{chatId}")]
     public async Task<IActionResult> GetMessages(int chatId)
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);

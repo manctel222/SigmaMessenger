@@ -13,11 +13,13 @@ public class AuthService
 {
     private readonly AppDbContext _db;
     private readonly IConfiguration _configuration;
+
     public AuthService(AppDbContext db, IConfiguration configuration)
     {
         _db = db;
         _configuration = configuration;
     }
+
     public async Task<User?> RegisterAsync(AuthDTO dto)
     {
         var exists = await _db.Users.AnyAsync(u => u.Username == dto.Username);
@@ -41,6 +43,7 @@ public class AuthService
         {
             return null;
         }
+
         if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
         {
             return null;
